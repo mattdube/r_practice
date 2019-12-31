@@ -3,6 +3,9 @@ library(tidyquant)
 library(tidyr)
 library(dtplyr)
 library(data.table)
+library(tictoc)
+library(profvis)
+library(bench)
 
 stock_symbols <- c("AAPL", "MSFT", "NFLX", "TSLA")
 
@@ -43,6 +46,7 @@ merge(stockPricesDT, stockPricesDT,
 #   *  Look at the change if you bought on date and sold on date_future (mutate)
 #   *  Aggregate to find the maximum and minimum change within each symbol (group_by/summarize)
 
+system.time({
 stock_prices %>%
     inner_join(stock_prices,
                by = "symbol",
@@ -53,8 +57,9 @@ stock_prices %>%
     summarize(largest_lost = min(change),
               largest_gain = max(change)) %>%
     ungroup()
+})
 
-stock_prices2 %>%
+system.time({stock_prices2 %>%
   inner_join(stock_prices2,
              by = "symbol",
              suffix = c("", "_future")) %>%
@@ -62,13 +67,48 @@ stock_prices2 %>%
   mutate(change = close_future - close) %>%
   group_by(symbol) %>%
   summarize(largest_gain = max(change),
-            largest_loss = min(change))
+            largest_loss = min(change)) %>% 
+    as_tibble()})
 
-merge(stockPricesDT, stockPricesDT, 
+
+system.time({merge(stockPricesDT, stockPricesDT, 
       by="symbol", 
       suffixes = c("", "_future"), 
       allow.cartesian = TRUE)[date_future > date][
         ,`:=`(change = close_future - close)][,
       .(largest_gain = max(change),
-        largest_loss = min(change)), keyby = .(symbol)][]
-      
+        largest_loss = min(change)), keyby = .(symbol)][]})
+
+
+profvis({
+  stock_prices %>%
+    inner_join(stock_prices,
+               by = "symbol",
+               suffix = c("", "_future")) %>%
+    filter(date_future > date) %>%
+    mutate(change = close_future - close) %>%
+    group_by(symbol) %>%
+    summarize(largest_lost = min(change),
+              largest_gain = max(change)) %>%
+    ungroup()
+})
+
+profvis({stock_prices2 %>%
+    inner_join(stock_prices2,
+               by = "symbol",
+               suffix = c("", "_future")) %>%
+    filter(date_future > date) %>%
+    mutate(change = close_future - close) %>%
+    group_by(symbol) %>%
+    summarize(largest_gain = max(change),
+              largest_loss = min(change)) %>% 
+    as_tibble()})
+
+
+profvis({merge(stockPricesDT, stockPricesDT, 
+                   by="symbol", 
+                   suffixes = c("", "_future"), 
+                   allow.cartesian = TRUE)[date_future > date][
+                     ,`:=`(change = close_future - close)][,
+                                                           .(largest_gain = max(change),
+                                                             largest_loss = min(change)), keyby = .(symbol)][]})
