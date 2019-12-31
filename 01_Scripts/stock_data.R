@@ -1,6 +1,7 @@
 library(tidyverse)
 library(tidyquant)
 library(tidyr)
+library(dtplyr)
 library(data.table)
 
 stock_symbols <- c("AAPL", "MSFT", "NFLX", "TSLA")
@@ -10,6 +11,8 @@ stock_prices <- tq_get(stock_symbols, from = "2010-01-01") %>%
     select(symbol, date, close)
 
 class(stock_prices) # tbl
+
+stock_prices2 <- lazy_dt(stock_prices)
 
 # create data.table
 stockPricesDT <- setDT(tq_get(stock_symbols, from = "2010-01-01"))
@@ -51,7 +54,21 @@ stock_prices %>%
               largest_gain = max(change)) %>%
     ungroup()
 
+stock_prices2 %>%
+  inner_join(stock_prices2,
+             by = "symbol",
+             suffix = c("", "_future")) %>%
+  filter(date_future > date) %>%
+  mutate(change = close_future - close) %>%
+  group_by(symbol) %>%
+  summarize(largest_gain = max(change),
+            largest_loss = min(change))
+
 merge(stockPricesDT, stockPricesDT, 
       by="symbol", 
       suffixes = c("", "_future"), 
-      allow.cartesian = TRUE)
+      allow.cartesian = TRUE)[date_future > date][
+        ,`:=`(change = close_future - close)][,
+      .(largest_gain = max(change),
+        largest_loss = min(change)), keyby = .(symbol)][]
+      
