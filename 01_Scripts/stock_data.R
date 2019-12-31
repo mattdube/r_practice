@@ -40,7 +40,7 @@ merge(stockPricesDT, stockPricesDT,
       allow.cartesian = TRUE)
 
 # This creates all combinations of present and future dates, 
-# ending up in columns close and close_future. Now we’ll need a few dplyr steps:
+# ending up in columns close and close_future. Now we'll need a few dplyr steps:
 #     
 #   *  Filter for cases where date_future is greater than date (filter)
 #   *  Look at the change if you bought on date and sold on date_future (mutate)
