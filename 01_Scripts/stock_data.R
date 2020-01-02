@@ -18,8 +18,8 @@ class(stock_prices) # tbl
 stock_prices2 <- lazy_dt(stock_prices)
 
 # create data.table
-stockPricesDT <- setDT(tq_get(stock_symbols, from = "2010-01-01"))
-stockPricesDT <- stockPricesDT[,.(symbol, date, close)]
+stockPricesDT <- setDT(tq_get(stock_symbols, from = "2010-01-01"))[,.(symbol, date, close)]
+# stockPricesDT <- stockPricesDT[,.(symbol, date, close)]
 class(stockPricesDT) # data.table
 
 # visualize stocks over time
